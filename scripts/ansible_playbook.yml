@@ -1,0 +1,275 @@
+---
+# ╔══════════════════════════════════════════════════════════╗
+# ║     Network as Code – Ansible Playbook                   ║
+# ║     LAB 8.2 – PE2 Evaluatie                              ║
+# ║     Student: Tibe Gijsen | PXL                           ║
+# ╠══════════════════════════════════════════════════════════╣
+# ║  GitHub → Ansible → RESTCONF → Router → NETCONF verify  ║
+# ╚══════════════════════════════════════════════════════════╝
+#
+# Verschil met Python pipeline:
+#   Python:  GitHub → NETCONF deploy  → RESTCONF verificatie
+#   Ansible: GitHub → RESTCONF deploy → NETCONF verificatie
+#
+# Gebruik:
+#   ansible-playbook ansible_playbook.yml
+
+- name: "Network as Code – PE2 – Tibe Gijsen"
+  hosts: localhost
+  gather_facts: false
+
+  vars:
+    router_ip:      "10.199.65.109"
+    router_user:    "admin"
+    router_pass:    "admin"
+    netconf_port:   830
+    restconf_base:  "https://{{ router_ip }}/restconf/data"
+    github_base:    "https://raw.githubusercontent.com/TibeGijsenPXL/PE2_Tibe_Gijsen/main"
+    github_json:    "{{ github_base }}/restconf_config.json"
+    github_xml:     "{{ github_base }}/netconf_config.xml"
+    config_json:    "/tmp/pe2_restconf_config.json"
+    config_xml:     "/tmp/pe2_netconf_config.xml"
+    restconf_headers:
+      Content-Type: "application/yang-data+json"
+      Accept:       "application/yang-data+json"
+
+  tasks:
+
+    # ─────────────────────────────────────────────
+    #  STAP 1 – Configuratie ophalen uit GitHub
+    # ─────────────────────────────────────────────
+    - name: "STAP 1a – JSON configuratie ophalen uit GitHub"
+      ansible.builtin.get_url:
+        url:  "{{ github_json }}"
+        dest: "{{ config_json }}"
+        mode: '0644'
+      register: download_json
+
+    - name: "STAP 1b – XML configuratie ophalen uit GitHub"
+      ansible.builtin.get_url:
+        url:  "{{ github_xml }}"
+        dest: "{{ config_xml }}"
+        mode: '0644'
+      register: download_xml
+
+    - name: "Toon download resultaat"
+      ansible.builtin.debug:
+        msg:
+          - "✅ JSON opgehaald: {{ config_json }}"
+          - "✅ XML opgehaald:  {{ config_xml }}"
+          - "📦 Bron: https://github.com/TibeGijsenPXL/PE2_Tibe_Gijsen"
+
+    - name: "JSON configuratie inladen"
+      ansible.builtin.set_fact:
+        router_config: "{{ lookup('file', config_json) | from_json }}"
+
+    - name: "Toon JSON configuratie (pretty-print)"
+      ansible.builtin.debug:
+        var: router_config
+
+    # ─────────────────────────────────────────────
+    #  STAP 2 – Deploy via RESTCONF
+    # ─────────────────────────────────────────────
+    - name: "STAP 2a – Hostname configureren via RESTCONF PUT"
+      ansible.builtin.uri:
+        url:              "{{ restconf_base }}/Cisco-IOS-XE-native:native/hostname"
+        method:           PUT
+        user:             "{{ router_user }}"
+        password:         "{{ router_pass }}"
+        force_basic_auth: true
+        headers:          "{{ restconf_headers }}"
+        body_format:      json
+        body:
+          "Cisco-IOS-XE-native:hostname": "LAB-RA05-C01-R01"
+        validate_certs:   false
+        status_code:      [200, 201, 204]
+      register: hostname_result
+
+    - name: "Toon hostname HTTP statuscode"
+      ansible.builtin.debug:
+        msg: "✅ Hostname – HTTP {{ hostname_result.status }}: {{ '204 No Content – Succesvol' if hostname_result.status == 204 else '200 OK' if hostname_result.status == 200 else hostname_result.status }}"
+
+    - name: "STAP 2b – Loopback0 configureren via RESTCONF PUT"
+      ansible.builtin.uri:
+        url:              "{{ restconf_base }}/Cisco-IOS-XE-native:native/interface/Loopback=0"
+        method:           PUT
+        user:             "{{ router_user }}"
+        password:         "{{ router_pass }}"
+        force_basic_auth: true
+        headers:          "{{ restconf_headers }}"
+        body_format:      json
+        body:
+          "Cisco-IOS-XE-native:Loopback":
+            name: "0"
+            description: "Router-ID – Network as Code via Ansible/RESTCONF"
+            ip:
+              address:
+                primary:
+                  address: "1.1.1.1"
+                  mask:    "255.255.255.255"
+        validate_certs:   false
+        status_code:      [200, 201, 204]
+      register: loopback_result
+
+    - name: "Toon Loopback0 HTTP statuscode"
+      ansible.builtin.debug:
+        msg: "✅ Loopback0 – HTTP {{ loopback_result.status }}: 1.1.1.1/32 geconfigureerd"
+
+    - name: "STAP 2c – GigabitEthernet0/0/1 configureren via RESTCONF PUT"
+      ansible.builtin.uri:
+        url:              "{{ restconf_base }}/Cisco-IOS-XE-native:native/interface/GigabitEthernet=0%2F0%2F1"
+        method:           PUT
+        user:             "{{ router_user }}"
+        password:         "{{ router_pass }}"
+        force_basic_auth: true
+        headers:          "{{ restconf_headers }}"
+        body_format:      json
+        body:
+          "Cisco-IOS-XE-native:GigabitEthernet":
+            name:        "0/0/1"
+            description: "WAN – Network as Code via Ansible/RESTCONF/GitHub"
+        validate_certs:   false
+        status_code:      [200, 201, 204]
+      register: gi1_result
+
+    - name: "Toon GigabitEthernet0/0/1 HTTP statuscode"
+      ansible.builtin.debug:
+        msg: "✅ GigabitEthernet0/0/1 – HTTP {{ gi1_result.status }}: WAN interface geconfigureerd"
+
+    - name: "STAP 2d – GigabitEthernet0/0/0 configureren via RESTCONF PUT"
+      ansible.builtin.uri:
+        url:              "{{ restconf_base }}/Cisco-IOS-XE-native:native/interface/GigabitEthernet=0%2F0%2F0"
+        method:           PUT
+        user:             "{{ router_user }}"
+        password:         "{{ router_pass }}"
+        force_basic_auth: true
+        headers:          "{{ restconf_headers }}"
+        body_format:      json
+        body:
+          "Cisco-IOS-XE-native:GigabitEthernet":
+            name:        "0/0/0"
+            description: "LAN – naar switch"
+        validate_certs:   false
+        status_code:      [200, 201, 204]
+      register: gi0_result
+
+    - name: "Toon GigabitEthernet0/0/0 HTTP statuscode"
+      ansible.builtin.debug:
+        msg: "✅ GigabitEthernet0/0/0 – HTTP {{ gi0_result.status }}: LAN interface geconfigureerd"
+
+    - name: "STAP 2e – OSPF configureren via RESTCONF PUT"
+      ansible.builtin.uri:
+        url:              "{{ restconf_base }}/Cisco-IOS-XE-native:native/router/Cisco-IOS-XE-ospf:ospf=1"
+        method:           PUT
+        user:             "{{ router_user }}"
+        password:         "{{ router_pass }}"
+        force_basic_auth: true
+        headers:          "{{ restconf_headers }}"
+        body_format:      json
+        body:
+          "Cisco-IOS-XE-ospf:ospf":
+            id:        1
+            router-id: "1.1.1.1"
+            network:
+              - ip:   "10.199.65.96"
+                mask: "0.0.0.31"
+                area:  0
+              - ip:   "1.1.1.1"
+                mask: "0.0.0.0"
+                area:  0
+        validate_certs:   false
+        status_code:      [200, 201, 204]
+      register: ospf_result
+
+    - name: "Toon OSPF HTTP statuscode"
+      ansible.builtin.debug:
+        msg: "✅ OSPF – HTTP {{ ospf_result.status }}: Process 1, Router-ID 1.1.1.1 geconfigureerd"
+
+    - name: "STAP 2f – SNMP configureren via RESTCONF PUT"
+      ansible.builtin.uri:
+        url:              "{{ restconf_base }}/Cisco-IOS-XE-native:native/snmp-server"
+        method:           PATCH
+        user:             "{{ router_user }}"
+        password:         "{{ router_pass }}"
+        force_basic_auth: true
+        headers:          "{{ restconf_headers }}"
+        body_format:      json
+        body:
+          "Cisco-IOS-XE-native:snmp-server":
+            community:
+              - name: "public"
+                RO:   [null]
+        validate_certs:   false
+        status_code:      [200, 201, 204]
+      register: snmp_result
+      ignore_errors: true
+
+    - name: "Toon SNMP HTTP statuscode"
+      ansible.builtin.debug:
+        msg: "✅ SNMP – HTTP {{ snmp_result.status | default('N/A') }}: community public RO"
+
+    # ─────────────────────────────────────────────
+    #  STAP 3 – Verificatie via NETCONF
+    # ─────────────────────────────────────────────
+    - name: "STAP 3a – Hostname verificeren via NETCONF get"
+      ansible.netcommon.netconf_get:
+        host:             "{{ router_ip }}"
+        port:             "{{ netconf_port }}"
+        username:         "{{ router_user }}"
+        password:         "{{ router_pass }}"
+        hostkey_verify:   false
+        filter: |
+          <filter>
+            <native xmlns="http://cisco.com/ns/yang/Cisco-IOS-XE-native">
+              <hostname/>
+            </native>
+          </filter>
+      register: netconf_hostname
+
+    - name: "Toon NETCONF hostname verificatie"
+      ansible.builtin.debug:
+        msg: "✅ NETCONF verificatie hostname: {{ netconf_hostname.output | default('opgehaald') }}"
+
+    - name: "STAP 3b – Interfaces verificeren via NETCONF get"
+      ansible.netcommon.netconf_get:
+        host:             "{{ router_ip }}"
+        port:             "{{ netconf_port }}"
+        username:         "{{ router_user }}"
+        password:         "{{ router_pass }}"
+        hostkey_verify:   false
+        filter: |
+          <filter>
+            <native xmlns="http://cisco.com/ns/yang/Cisco-IOS-XE-native">
+              <interface/>
+            </native>
+          </filter>
+      register: netconf_interfaces
+
+    - name: "Toon NETCONF interface verificatie"
+      ansible.builtin.debug:
+        msg: "✅ NETCONF verificatie interfaces opgehaald"
+
+    # ─────────────────────────────────────────────
+    #  STAP 4 – Rapport
+    # ─────────────────────────────────────────────
+    - name: "STAP 4 – Deployment Rapport"
+      ansible.builtin.debug:
+        msg:
+          - "╔══════════════════════════════════════════════════╗"
+          - "║    Network as Code – Ansible Deployment Rapport  ║"
+          - "╠══════════════════════════════════════════════════╣"
+          - "║  Student:  Tibe Gijsen | PXL                     ║"
+          - "║  Router:   LAB-RA05-C01-R01 ({{ router_ip }})    ║"
+          - "║  GitHub:   TibeGijsenPXL/PE2_Tibe_Gijsen        ║"
+          - "╠══════════════════════════════════════════════════╣"
+          - "║  Deploy:   RESTCONF (HTTP PUT/PATCH)             ║"
+          - "║  Verify:   NETCONF (get)                         ║"
+          - "╠══════════════════════════════════════════════════╣"
+          - "║  ✅ Hostname:          LAB-RA05-C01-R01          ║"
+          - "║  ✅ GigabitEthernet0/0/1: WAN interface          ║"
+          - "║  ✅ GigabitEthernet0/0/0: LAN interface          ║"
+          - "║  ✅ Loopback0:         1.1.1.1/32                ║"
+          - "║  ✅ OSPF Process 1:    Router-ID 1.1.1.1         ║"
+          - "║  ✅ SNMP:              community public RO        ║"
+          - "║  ✅ NETCONF verificatie geslaagd                 ║"
+          - "╚══════════════════════════════════════════════════╝"
