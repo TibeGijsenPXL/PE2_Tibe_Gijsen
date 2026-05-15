@@ -1,0 +1,16 @@
+ en
+conf t
+hostname LAB-RA05-C01-R01
+ip domain name lab.local
+crypto key generate rsa modulus 2048
+ip ssh version 2
+username admin privilege 15 secret admin
+netconf-yang
+restconf
+ip http server
+ip http secure-server
+interface GigabitEthernet0/0/1
+ ip address 10.199.65.109 255.255.255.224
+ no shutdown
+end
+write memory
