@@ -1,0 +1,70 @@
+{
+  "_comment": "restconf_config.json - YANG-compliant configuratie voor RESTCONF deployment",
+  "_gebruikt_door": "Task 38 (Python/RESTCONF) en Task 39 (Ansible/RESTCONF)",
+
+  "Cisco-IOS-XE-native:native": {
+
+    "hostname": "MijnRouter",
+
+    "interface": {
+      "GigabitEthernet": [
+        {
+          "name": "1",
+          "description": "WAN - Geconfigureerd via RESTCONF/YANG GitHub"
+        },
+        {
+          "name": "2",
+          "description": "LAN - Geconfigureerd via RESTCONF/YANG GitHub",
+          "ip": {
+            "address": {
+              "primary": {
+                "address": "10.10.10.1",
+                "mask": "255.255.255.0"
+              }
+            }
+          }
+        }
+      ],
+      "Loopback": [
+        {
+          "name": "0",
+          "description": "Router-ID Loopback",
+          "ip": {
+            "address": {
+              "primary": {
+                "address": "1.1.1.1",
+                "mask": "255.255.255.255"
+              }
+            }
+          }
+        }
+      ]
+    },
+
+    "router": {
+      "Cisco-IOS-XE-ospf:ospf": [
+        {
+          "id": 1,
+          "router-id": "1.1.1.1",
+          "network": [
+            {
+              "ip": "192.168.56.0",
+              "mask": "0.0.0.255",
+              "area": 0
+            },
+            {
+              "ip": "10.10.10.0",
+              "mask": "0.0.0.255",
+              "area": 0
+            },
+            {
+              "ip": "1.1.1.1",
+              "mask": "0.0.0.0",
+              "area": 0
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
