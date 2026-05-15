@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  netconf_config.xml
+  YANG-gebaseerde configuratie voor Cisco IOS-XE
+  Gebruikt door Task 36 (Python/NETCONF) en Task 37 (Ansible/NETCONF)
+  
+  Bevat:
+    - Hostname
+    - Interfaces met IP-adressen
+    - OSPF routing
+-->
+<config xmlns:xc="urn:ietf:params:xml:ns:netconf:base:1.0">
+
+  <native xmlns="http://cisco.com/ns/yang/Cisco-IOS-XE-native">
+
+    <!-- Hostname -->
+    <hostname>MijnRouter</hostname>
+
+    <!-- Interfaces -->
+    <interface>
+      <GigabitEthernet>
+        <name>1</name>
+        <description>WAN - Geconfigureerd via NETCONF/YANG GitHub</description>
+      </GigabitEthernet>
+
+      <GigabitEthernet>
+        <name>2</name>
+        <description>LAN - Geconfigureerd via NETCONF/YANG GitHub</description>
+        <ip>
+          <address>
+            <primary>
+              <address>10.10.10.1</address>
+              <mask>255.255.255.0</mask>
+            </primary>
+          </address>
+        </ip>
+      </GigabitEthernet>
+
+      <Loopback>
+        <name>0</name>
+        <description>Router-ID Loopback</description>
+        <ip>
+          <address>
+            <primary>
+              <address>1.1.1.1</address>
+              <mask>255.255.255.255</mask>
+            </primary>
+          </address>
+        </ip>
+      </Loopback>
+    </interface>
+
+    <!-- OSPF Routing -->
+    <router>
+      <ospf xmlns="http://cisco.com/ns/yang/Cisco-IOS-XE-ospf">
+        <id>1</id>
+        <router-id>1.1.1.1</router-id>
+        <network>
+          <ip>192.168.56.0</ip>
+          <mask>0.0.0.255</mask>
+          <area>0</area>
+        </network>
+        <network>
+          <ip>10.10.10.0</ip>
+          <mask>0.0.0.255</mask>
+          <area>0</area>
+        </network>
+        <network>
+          <ip>1.1.1.1</ip>
+          <mask>0.0.0.0</mask>
+          <area>0</area>
+        </network>
+      </ospf>
+    </router>
+
+  </native>
+
+</config>
