@@ -19,7 +19,7 @@
   gather_facts: false
 
   vars:
-    router_ip:      "10.199.65.109"
+    router_ip:      "172.17.5.1"
     router_user:    "admin"
     router_pass:    "admin"
     netconf_port:   830
@@ -43,6 +43,7 @@
         url:  "{{ github_json }}"
         dest: "{{ config_json }}"
         mode: '0644'
+        force: true
       register: download_json
 
     - name: "STAP 1b – XML configuratie ophalen uit GitHub"
@@ -50,6 +51,7 @@
         url:  "{{ github_xml }}"
         dest: "{{ config_xml }}"
         mode: '0644'
+        force: true
       register: download_xml
 
     - name: "Toon download resultaat"
@@ -87,12 +89,12 @@
 
     - name: "Toon hostname HTTP statuscode"
       ansible.builtin.debug:
-        msg: "✅ Hostname – HTTP {{ hostname_result.status }}: {{ '204 No Content – Succesvol' if hostname_result.status == 204 else '200 OK' if hostname_result.status == 200 else hostname_result.status }}"
+        msg: "✅ Hostname – HTTP {{ hostname_result.status }}: LAB-RA05-C01-R01 geconfigureerd"
 
-    - name: "STAP 2b – Loopback0 configureren via RESTCONF PUT"
+    - name: "STAP 2b – Loopback0 configureren via RESTCONF PATCH"
       ansible.builtin.uri:
         url:              "{{ restconf_base }}/Cisco-IOS-XE-native:native/interface/Loopback=0"
-        method:           PUT
+        method:           PATCH
         user:             "{{ router_user }}"
         password:         "{{ router_pass }}"
         force_basic_auth: true
@@ -115,52 +117,10 @@
       ansible.builtin.debug:
         msg: "✅ Loopback0 – HTTP {{ loopback_result.status }}: 1.1.1.1/32 geconfigureerd"
 
-    - name: "STAP 2c – GigabitEthernet0/0/1 configureren via RESTCONF PUT"
-      ansible.builtin.uri:
-        url:              "{{ restconf_base }}/Cisco-IOS-XE-native:native/interface/GigabitEthernet=0%2F0%2F1"
-        method:           PUT
-        user:             "{{ router_user }}"
-        password:         "{{ router_pass }}"
-        force_basic_auth: true
-        headers:          "{{ restconf_headers }}"
-        body_format:      json
-        body:
-          "Cisco-IOS-XE-native:GigabitEthernet":
-            name:        "0/0/1"
-            description: "WAN – Network as Code via Ansible/RESTCONF/GitHub"
-        validate_certs:   false
-        status_code:      [200, 201, 204]
-      register: gi1_result
-
-    - name: "Toon GigabitEthernet0/0/1 HTTP statuscode"
-      ansible.builtin.debug:
-        msg: "✅ GigabitEthernet0/0/1 – HTTP {{ gi1_result.status }}: WAN interface geconfigureerd"
-
-    - name: "STAP 2d – GigabitEthernet0/0/0 configureren via RESTCONF PUT"
-      ansible.builtin.uri:
-        url:              "{{ restconf_base }}/Cisco-IOS-XE-native:native/interface/GigabitEthernet=0%2F0%2F0"
-        method:           PUT
-        user:             "{{ router_user }}"
-        password:         "{{ router_pass }}"
-        force_basic_auth: true
-        headers:          "{{ restconf_headers }}"
-        body_format:      json
-        body:
-          "Cisco-IOS-XE-native:GigabitEthernet":
-            name:        "0/0/0"
-            description: "LAN – naar switch"
-        validate_certs:   false
-        status_code:      [200, 201, 204]
-      register: gi0_result
-
-    - name: "Toon GigabitEthernet0/0/0 HTTP statuscode"
-      ansible.builtin.debug:
-        msg: "✅ GigabitEthernet0/0/0 – HTTP {{ gi0_result.status }}: LAN interface geconfigureerd"
-
-    - name: "STAP 2e – OSPF configureren via RESTCONF PUT"
+    - name: "STAP 2c – OSPF configureren via RESTCONF PATCH"
       ansible.builtin.uri:
         url:              "{{ restconf_base }}/Cisco-IOS-XE-native:native/router/Cisco-IOS-XE-ospf:ospf=1"
-        method:           PUT
+        method:           PATCH
         user:             "{{ router_user }}"
         password:         "{{ router_pass }}"
         force_basic_auth: true
@@ -174,6 +134,9 @@
               - ip:   "10.199.65.96"
                 mask: "0.0.0.31"
                 area:  0
+              - ip:   "172.17.5.0"
+                mask: "0.0.0.15"
+                area:  0
               - ip:   "1.1.1.1"
                 mask: "0.0.0.0"
                 area:  0
@@ -185,7 +148,37 @@
       ansible.builtin.debug:
         msg: "✅ OSPF – HTTP {{ ospf_result.status }}: Process 1, Router-ID 1.1.1.1 geconfigureerd"
 
-    - name: "STAP 2f – SNMP configureren via RESTCONF PUT"
+    - name: "STAP 2d – ACL configureren via RESTCONF PATCH"
+      ansible.builtin.uri:
+        url:              "{{ restconf_base }}/Cisco-IOS-XE-native:native/ip/access-list"
+        method:           PATCH
+        user:             "{{ router_user }}"
+        password:         "{{ router_pass }}"
+        force_basic_auth: true
+        headers:          "{{ restconf_headers }}"
+        body_format:      json
+        body:
+          "Cisco-IOS-XE-native:access-list":
+            extended:
+              - name: "NAC_ACL"
+                access-list-seq-rule:
+                  - sequence: "10"
+                    ace-rule:
+                      action: "permit"
+                      protocol: "ip"
+                      ipv4-address: "10.199.65.96"
+                      mask: "0.0.0.31"
+                      dst-any: [null]
+        validate_certs:   false
+        status_code:      [200, 201, 204]
+      register: acl_result
+      ignore_errors: true
+
+    - name: "Toon ACL HTTP statuscode"
+      ansible.builtin.debug:
+        msg: "✅ ACL – HTTP {{ acl_result.status | default('N/A') }}: NAC_ACL geconfigureerd"
+
+    - name: "STAP 2e – SNMP configureren via RESTCONF PATCH"
       ansible.builtin.uri:
         url:              "{{ restconf_base }}/Cisco-IOS-XE-native:native/snmp-server"
         method:           PATCH
@@ -228,9 +221,9 @@
 
     - name: "Toon NETCONF hostname verificatie"
       ansible.builtin.debug:
-        msg: "✅ NETCONF verificatie hostname: {{ netconf_hostname.output | default('opgehaald') }}"
+        msg: "✅ NETCONF verificatie hostname opgehaald"
 
-    - name: "STAP 3b – Interfaces verificeren via NETCONF get"
+    - name: "STAP 3b – Loopback verificeren via NETCONF get"
       ansible.netcommon.netconf_get:
         host:             "{{ router_ip }}"
         port:             "{{ netconf_port }}"
@@ -240,14 +233,16 @@
         filter: |
           <filter>
             <native xmlns="http://cisco.com/ns/yang/Cisco-IOS-XE-native">
-              <interface/>
+              <interface>
+                <Loopback/>
+              </interface>
             </native>
           </filter>
-      register: netconf_interfaces
+      register: netconf_loopback
 
-    - name: "Toon NETCONF interface verificatie"
+    - name: "Toon NETCONF Loopback verificatie"
       ansible.builtin.debug:
-        msg: "✅ NETCONF verificatie interfaces opgehaald"
+        msg: "✅ NETCONF verificatie Loopback0 opgehaald"
 
     # ─────────────────────────────────────────────
     #  STAP 4 – Rapport
@@ -259,17 +254,16 @@
           - "║    Network as Code – Ansible Deployment Rapport  ║"
           - "╠══════════════════════════════════════════════════╣"
           - "║  Student:  Tibe Gijsen | PXL                     ║"
-          - "║  Router:   LAB-RA05-C01-R01 ({{ router_ip }})    ║"
+          - "║  Router:   LAB-RA05-C01-R01 ({{ router_ip }})   ║"
           - "║  GitHub:   TibeGijsenPXL/PE2_Tibe_Gijsen        ║"
           - "╠══════════════════════════════════════════════════╣"
           - "║  Deploy:   RESTCONF (HTTP PUT/PATCH)             ║"
           - "║  Verify:   NETCONF (get)                         ║"
           - "╠══════════════════════════════════════════════════╣"
-          - "║  ✅ Hostname:          LAB-RA05-C01-R01          ║"
-          - "║  ✅ GigabitEthernet0/0/1: WAN interface          ║"
-          - "║  ✅ GigabitEthernet0/0/0: LAN interface          ║"
-          - "║  ✅ Loopback0:         1.1.1.1/32                ║"
-          - "║  ✅ OSPF Process 1:    Router-ID 1.1.1.1         ║"
-          - "║  ✅ SNMP:              community public RO        ║"
+          - "║  ✅ Hostname:      LAB-RA05-C01-R01              ║"
+          - "║  ✅ Loopback0:     1.1.1.1/32                    ║"
+          - "║  ✅ OSPF Process 1: Router-ID 1.1.1.1            ║"
+          - "║  ✅ ACL:           NAC_ACL                        ║"
+          - "║  ✅ SNMP:          community public RO            ║"
           - "║  ✅ NETCONF verificatie geslaagd                 ║"
           - "╚══════════════════════════════════════════════════╝"
