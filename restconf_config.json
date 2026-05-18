@@ -1,28 +1,20 @@
 {
   "_comment": "restconf_config.json - YANG-compliant configuratie voor RESTCONF deployment",
-  "_gebruikt_door": "Task 38 (Python/RESTCONF) en Task 39 (Ansible/RESTCONF)",
+  "_gebruikt_door": "end_to_end_pipeline.py (Python/RESTCONF) en ansible_playbook.yml (Ansible/RESTCONF)",
 
   "Cisco-IOS-XE-native:native": {
 
-    "hostname": "MijnRouter",
+    "hostname": "LAB-RA05-C01-R01",
 
     "interface": {
       "GigabitEthernet": [
         {
-          "name": "1",
-          "description": "WAN - testb Geconfigureerd via RESTCONF/YANG GitHub"
+          "name": "0/0/1",
+          "description": "WAN - Geconfigureerd via RESTCONF/YANG GitHub"
         },
         {
-          "name": "2",
-          "description": "LAN - Geconfigureerd via RESTCONF/YANG GitHub",
-          "ip": {
-            "address": {
-              "primary": {
-                "address": "10.10.10.1",
-                "mask": "255.255.255.0"
-              }
-            }
-          }
+          "name": "0/0/0",
+          "description": "LAN - Geconfigureerd via RESTCONF/YANG GitHub"
         }
       ],
       "Loopback": [
@@ -48,13 +40,13 @@
           "router-id": "1.1.1.1",
           "network": [
             {
-              "ip": "192.168.56.0",
-              "mask": "0.0.0.255",
+              "ip": "10.199.65.96",
+              "mask": "0.0.0.31",
               "area": 0
             },
             {
-              "ip": "10.10.10.0",
-              "mask": "0.0.0.255",
+              "ip": "172.17.5.0",
+              "mask": "0.0.0.15",
               "area": 0
             },
             {
