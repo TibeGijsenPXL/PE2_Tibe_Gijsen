@@ -299,14 +299,12 @@ def stap2_netconf(xml_config):
             log("OK", "Datastore unlock", "Running datastore ontgrendeld")
 
             # Verificatie via get-config
-            filtr = """
-            <filter>
-              <native xmlns="http://cisco.com/ns/yang/Cisco-IOS-XE-native">
-                <hostname/>
-                <interface/>
-              </native>
-            </filter>
-            """
+            filtr = ("subtree", """
+            <native xmlns="http://cisco.com/ns/yang/Cisco-IOS-XE-native">
+              <hostname/>
+              <interface/>
+            </native>
+            """)
             result = m.get_config(source="running", filter=filtr)
             log("OK", "NETCONF get-config", "Running configuratie opgehaald")
 
