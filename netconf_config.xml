@@ -16,7 +16,7 @@
     <interface>
       <GigabitEthernet>
         <name>0/0/1</name>
-        <description>WAN - Geconfigureerd via NETCONF/YANG GitHub</description>
+        <description>testWAN - Geconfigureerd via NETCONF/YANG GitHub</description>
       </GigabitEthernet>
 
       <GigabitEthernet>
