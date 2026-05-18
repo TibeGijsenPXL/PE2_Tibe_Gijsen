@@ -48,7 +48,7 @@ Transport._preferred_keys = (
 )
 
 # ─────────────────────────────────────────────
-#  Configuratie – pas aan indien nodig
+#  Configuratie
 # ─────────────────────────────────────────────
 ROUTER_IP        = "10.199.65.109"
 ROUTER_USER      = "admin"
