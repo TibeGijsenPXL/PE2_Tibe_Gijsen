@@ -10,7 +10,7 @@
       "GigabitEthernet": [
         {
           "name": "0/0/1",
-          "description": "WAN - Geconfigureerd via RESTCONF/YANG GitHub"
+          "description": "testWAN - Geconfigureerd via RESTCONF/YANG GitHub"
         },
         {
           "name": "0/0/0",
