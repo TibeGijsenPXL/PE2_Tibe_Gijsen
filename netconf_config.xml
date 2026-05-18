@@ -2,38 +2,26 @@
 <!--
   netconf_config.xml
   YANG-gebaseerde configuratie voor Cisco IOS-XE
-  Gebruikt door Task 36 (Python/NETCONF) en Task 37 (Ansible/NETCONF)
-  
-  Bevat:
-    - Hostname
-    - Interfaces met IP-adressen
-    - OSPF routing
+  Router: LAB-RA05-C01-R01
+  Gebruikt door end_to_end_pipeline.py (Python/NETCONF)
 -->
 <config xmlns:xc="urn:ietf:params:xml:ns:netconf:base:1.0">
 
   <native xmlns="http://cisco.com/ns/yang/Cisco-IOS-XE-native">
 
     <!-- Hostname -->
-    <hostname>MijnRouter</hostname>
+    <hostname>LAB-RA05-C01-R01</hostname>
 
     <!-- Interfaces -->
     <interface>
       <GigabitEthernet>
-        <name>1</name>
+        <name>0/0/1</name>
         <description>WAN - Geconfigureerd via NETCONF/YANG GitHub</description>
       </GigabitEthernet>
 
       <GigabitEthernet>
-        <name>2</name>
+        <name>0/0/0</name>
         <description>LAN - Geconfigureerd via NETCONF/YANG GitHub</description>
-        <ip>
-          <address>
-            <primary>
-              <address>10.10.10.1</address>
-              <mask>255.255.255.0</mask>
-            </primary>
-          </address>
-        </ip>
       </GigabitEthernet>
 
       <Loopback>
@@ -56,13 +44,13 @@
         <id>1</id>
         <router-id>1.1.1.1</router-id>
         <network>
-          <ip>192.168.56.0</ip>
-          <mask>0.0.0.255</mask>
+          <ip>10.199.65.96</ip>
+          <mask>0.0.0.31</mask>
           <area>0</area>
         </network>
         <network>
-          <ip>10.10.10.0</ip>
-          <mask>0.0.0.255</mask>
+          <ip>172.17.5.0</ip>
+          <mask>0.0.0.15</mask>
           <area>0</area>
         </network>
         <network>
